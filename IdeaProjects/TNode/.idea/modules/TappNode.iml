@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module external.linked.project.id="TappNode" external.linked.project.path="$MODULE_DIR$/../../TappNode" external.root.project.path="$MODULE_DIR$/../../TappNode" external.system.id="GRADLE" external.system.module.group="" external.system.module.version="1.0-SNAPSHOT" type="JAVA_MODULE" version="4">
+  <component name="NewModuleRootManager" inherit-compiler-output="true">
+    <exclude-output />
+    <content url="file://$MODULE_DIR$/../../TappNode">
+      <excludeFolder url="file://$MODULE_DIR$/../../TappNode/.gradle" />
+      <excludeFolder url="file://$MODULE_DIR$/../../TappNode/build" />
+      <excludeFolder url="file://$MODULE_DIR$/../../TappNode/out" />
+    </content>
+    <orderEntry type="inheritedJdk" />
+    <orderEntry type="sourceFolder" forTests="false" />
+    <orderEntry type="module" module-name="Dinigma" exported="" />
+  </component>
+</module>

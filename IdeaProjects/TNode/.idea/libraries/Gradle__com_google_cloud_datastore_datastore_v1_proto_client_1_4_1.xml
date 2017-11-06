@@ -1,0 +1,11 @@
+<component name="libraryTable">
+  <library name="Gradle: com.google.cloud.datastore:datastore-v1-proto-client:1.4.1">
+    <CLASSES>
+      <root url="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/com.google.cloud.datastore/datastore-v1-proto-client/1.4.1/9766486f78dea8d8d29b3c270e81be9bd4c50f35/datastore-v1-proto-client-1.4.1.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES>
+      <root url="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/com.google.cloud.datastore/datastore-v1-proto-client/1.4.1/f5ca938c2775c71e83a461d30f633f59af89c627/datastore-v1-proto-client-1.4.1-sources.jar!/" />
+    </SOURCES>
+  </library>
+</component>
