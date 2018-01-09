@@ -1,7 +1,6 @@
 <component name="libraryTable">
   <library name="Gradle: org.apache.logging.log4j:log4j-core:2.9.1">
     <CLASSES>
-      <root url="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.apache.logging.log4j/log4j-core/2.9.1/c041978c686866ee8534f538c6220238db3bb6be/log4j-core-2.9.1.jar!/" />
       <root url="file://$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.apache.logging.log4j/log4j-core/2.9.1/c041978c686866ee8534f538c6220238db3bb6be" />
     </CLASSES>
     <JAVADOC />
