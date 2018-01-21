@@ -124,18 +124,16 @@ public Lock(File file) throws MinigmaException{
     private void init(PGPPublicKeyRingCollection publicKeyRingCollection){
         try {
             this.publicKeys = publicKeyRingCollection;
-            System.out.println("PKRC has size:"+publicKeys.size());
+            //System.out.println("PKRC has size:"+publicKeys.size());
             PGPPublicKeyRing keyRing = (PGPPublicKeyRing) publicKeys.getKeyRings().next();
             PGPPublicKey pubkey = keyRing.getPublicKey();
             Iterator<String> userids = pubkey.getUserIDs();
-            while (userids.hasNext()) {
-                System.out.println("initiating lock for "+userids.next());
-            }
+
             long keyID = pubkey.getKeyID();
             lockID = keyID;
             this.fingerprint=pubkey.getFingerprint();
             //System.out.println(Kidney.toString(lockID));
-           System.out.println(Kidney.toString(fingerprint));
+           //System.out.println(Kidney.toString(fingerprint));
         }catch(Exception x){
             Exceptions.dump(x);
 
@@ -200,15 +198,17 @@ public Lock(File file) throws MinigmaException{
     /**
      * Adds a Lock to this lock, concatenating the two. Material locked with the
      * resulting concatenated Lock can be unlocked with *any* of the corresponding
-     * Keys.
+     * Keys, unless inclusive is true in which case *all* the Keys are needed. However,
+     * this feature is not yet implemented and passing inclusive as true will cause an exception to be thrown.
      * @param lock the Lock to be added to this Lock
+     * @param inclusive must be false in this implementation.
      * @return a Lock which can be unlocked by the keys corresponding to either Lock.
      */
     public Lock addLock(Lock lock, boolean inclusive) throws MinigmaException{
         if(inclusive){throw new MinigmaException("inclusive Lock concatenation not yet implemented");}
         long newLockID=0;
         try{
-            Iterator<PGPPublicKeyRing> pgpPublicKeyRingIterator = lock.getKeys();
+            Iterator<PGPPublicKeyRing> pgpPublicKeyRingIterator = lock.getPGPPublicKeyRingIterator();
             while(pgpPublicKeyRingIterator.hasNext()){
                 PGPPublicKeyRing pgpPublicKeyRing = pgpPublicKeyRingIterator.next();
                 newLockID = pgpPublicKeyRing.getPublicKey().getKeyID();
@@ -235,7 +235,7 @@ public Lock(File file) throws MinigmaException{
      * @return this Lock, but with the other Lock removed
      */
     public Lock removeLock(Lock lock)throws MinigmaException{
-        Iterator<PGPPublicKeyRing> keys = lock.getKeys();
+        Iterator<PGPPublicKeyRing> keys = lock.getPGPPublicKeyRingIterator();
         try{
             while(keys.hasNext()){
                 PGPPublicKeyRing key = keys.next();
@@ -262,7 +262,7 @@ public Lock(File file) throws MinigmaException{
      *
      * @return
      */
-    public Iterator<PGPPublicKeyRing> getKeys(){
+    public Iterator<PGPPublicKeyRing> getPGPPublicKeyRingIterator(){
         //Log.d(TAG,4, "Lock.getKeys: publicKeys is: " +publicKeys.toString());
 
         return publicKeys.getKeyRings();
@@ -314,20 +314,26 @@ public void revoke(long keyID, Key key, char[] passphrase) throws MinigmaExcepti
  */
     /**
      *Certifies a specific PGP public key within this Lock.
-     *
+     * This method does not write the newly-certified Lock to a Lockstore, so you must do so after calling it if you want
+     * to preserve the certification!
      * @param keyID the keyID of the public key to be certified
      * @param key the key of the person doing the certifying
      * @param passphrase the corresponding passphrase
      * @throws MinigmaException
      */
-    public void certify(long keyID, Key key, char [] passphrase) throws MinigmaException {
+    public Certificate certify(long keyID, Key key, char [] passphrase, LockStore lockStore) throws MinigmaException {
         try{
             if(publicKeys.contains(keyID)){
                 try{
-                    PGPPublicKeyRing pkr = publicKeys.getPublicKeyRing(keyID);
-                    PGPPublicKey publicKey = pkr.getPublicKey(keyID);
-                    PGPSignature signature = SignatureEngine.getKeyCertification(key, passphrase, publicKey);
-                    PGPPublicKey.addCertification(publicKey, signature);
+                    PGPPublicKeyRing pgpPublicKeyRing = publicKeys.getPublicKeyRing(keyID);
+                    PGPPublicKey publicKey = pgpPublicKeyRing.getPublicKey(keyID);
+                    PGPSignature pgpSignature = SignatureEngine.getKeyCertification(key, passphrase, publicKey);
+                    publicKeys=PGPPublicKeyRingCollection.removePublicKeyRing(publicKeys,pgpPublicKeyRing);
+                    pgpPublicKeyRing=PGPPublicKeyRing.removePublicKey(pgpPublicKeyRing,publicKey);
+                    publicKey=PGPPublicKey.addCertification(publicKey, pgpSignature);
+                    pgpPublicKeyRing=PGPPublicKeyRing.insertPublicKey(pgpPublicKeyRing,publicKey);
+                    publicKeys=PGPPublicKeyRingCollection.addPublicKeyRing(publicKeys,pgpPublicKeyRing);
+                    return new Certificate(pgpSignature, lockStore.getUserID(key.getKeyID()));
                 }catch(Exception x){
                     throw new MinigmaException("Problem certifying key", x);
                 }
@@ -335,11 +341,35 @@ public void revoke(long keyID, Key key, char[] passphrase) throws MinigmaExcepti
                 throw new MinigmaException ("key "+Kidney.toString(keyID)+ " not in this lock");
             }
         }catch(Exception x){
+            Exceptions.dump(x);
             throw new MinigmaException("certification issues", x);
 
         }
     }
+    public List<Certificate> getCertificates(){
+        List<Certificate> certificates = new ArrayList<>();
+        for (PGPPublicKeyRing pgpPublicKeyRing : publicKeys){
+            Iterator<PGPPublicKey> pgpPublicKeyIterator = pgpPublicKeyRing.getPublicKeys();
+            while (pgpPublicKeyIterator.hasNext()){
+                PGPPublicKey pgpPublicKey = pgpPublicKeyIterator.next();
+                Iterator signatureIterator = pgpPublicKey.getSignatures();
+                while (signatureIterator.hasNext()) {
+                    try {
+                        PGPSignature pgpSignature = (PGPSignature) signatureIterator.next();
+                        if (pgpSignature.isCertification()) {
+                            Certificate certificate = new Certificate(pgpSignature);
+                            certificates.add(certificate);
+                        }
 
+                    }catch (ClassCastException ccx){
+                        Exceptions.dump(ccx);
+                        //TODO handle
+                    }
+                }
+            }
+        }
+        return certificates;
+    }
 
     public boolean contains (long lockID) {
         try {
@@ -359,5 +389,13 @@ public void revoke(long keyID, Key key, char[] passphrase) throws MinigmaExcepti
     }
     public byte[] getFingerprint(){
         return fingerprint;
+    }
+    public byte[] getBytes(){
+        try {
+            return publicKeys.getEncoded();
+        }catch(IOException iox){
+            Exceptions.dump(iox);
+            return null;
+        }
     }
 }

@@ -17,11 +17,14 @@ package uk.co.platosys.minigma;
 
 
 
+import java.io.IOException;
 import java.nio.charset.Charset;
 
 import net.openhft.hashing.LongHashFunction;
 import org.bouncycastle.crypto.digests.KeccakDigest;
 import org.bouncycastle.crypto.digests.SHA3Digest;
+import org.bouncycastle.openpgp.PGPSignature;
+import uk.co.platosys.minigma.exceptions.Exceptions;
 import uk.co.platosys.minigma.exceptions.MinigmaException;
 import uk.co.platosys.minigma.utils.MinigmaUtils;
 
@@ -64,13 +67,22 @@ public class Digester {
      * @return
      * @throws MinigmaException
      */
-    public static String shortDigest (byte[] bytes) throws MinigmaException{
+    public static String shortDigest (byte[] bytes) {
         try{
             LongHashFunction longHashFunction = LongHashFunction.xx();
             long longHash = longHashFunction.hashBytes(bytes);
             return(MinigmaUtils.encode(longHash));
         }catch(Exception e){
-            throw new MinigmaException("error making short digest", e);
+            Exceptions.dump(e);
+            return null;
+        }
+    }
+    public static String shortDigest (PGPSignature signature) {
+        try {
+            return shortDigest(signature.getEncoded());
+        }catch(IOException iox){
+            Exceptions.dump(iox);
+            return null;
         }
     }
 

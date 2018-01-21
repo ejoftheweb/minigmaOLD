@@ -32,12 +32,14 @@ System.out.println("Running Certification Test");
         try {
             System.out.println("Running Certification Test (CT1)");
             LockStore lockstore = new MinigmaLockStore(TestValues.lockFile, false);
+            System.out.println("CT1: lockstore size is "+lockstore.getCount());
             Map<String, Certificate> certificatesMap = new HashMap<>();
             for (String username:TestValues.testUsernames){
                 System.out.println("CT1 testing lock for "+username);
 
                 Lock lock =lockstore.getLock(username);
-                System.out.println("CT1 "+username+" has lock "+Kidney.toString(lock.getLockID()));
+                int lockSize = lock.getBytes().length;
+                System.out.println("CT1 "+username+" has lock "+Kidney.toString(lock.getLockID())+", size "+lockSize);
 
                 for (int i=0; i<TestValues.testUsernames.length; i++){
                     String signername = TestValues.testUsernames[i];
@@ -53,13 +55,17 @@ System.out.println("Running Certification Test");
                             PGPPublicKey pgpPublicKey = publicKeyIterator.next();
                             Certificate certificate = lock.certify(pgpPublicKey.getKeyID(), key, passphrase);
                             System.out.println("\t\tCT1 Certificate "+certificate.getShortDigest()+" signed by "+Kidney.toString(certificate.getKeyID()));
+                            int certSize = certificate.getBytes().length;
                             certificatesMap.put(certificate.getShortDigest(), certificate);
-                            System.out.println("\t\tCT1 "+certificatesMap.size()+" certs in collection");
+                            System.out.println("\t\tCT1 Certificate size is:"+certSize+", and there are "+certificatesMap.size()+" certs in collection");
                         }
                     }
 
                 }
-                lockstore.addLock(lock);
+                if(lockstore.addLock(lock)){
+                    System.out.println("\tCT1: newly signed lock added to lockstore");
+                }
+                System.out.println("\tCT1: newly signed locksize is "+lock.getBytes().length);
                 System.out.println("\tCT1 "+certificatesMap.size()+" certs in collection");
             }
             System.out.println("CT1 "+certificatesMap.size()+" certs in collection");
@@ -70,13 +76,14 @@ System.out.println("Running Certification Test");
                 List<Certificate> certificates = lock.getCertificates();
                 System.out.println("CT2 lock "+Kidney.toString(lock.getLockID())+" has "+certificates.size()+" certificates");
                 for(Certificate certificate:certificates){
-                    System.out.println("\t CT2 certificate "+certificate.getShortDigest()+" was signed by "+Kidney.toString(certificate.getKeyID()));
+                    System.out.println("\tCT2 attached certificate on lock "+certificate.getShortDigest()+" was signed by "+Kidney.toString(certificate.getKeyID()));
                     try {
                         if(certificatesMap.containsKey(certificate.getShortDigest())) {
                             Certificate certificate1 = certificatesMap.get(certificate.getShortDigest());
-                            System.out.println("\t CT2 certificate "+certificate1.getShortDigest()+" was signed by "+Kidney.toString(certificate1.getKeyID()));
+                            System.out.println("\t CT2 certificate in collection "+certificate1.getShortDigest()+" was signed by "+Kidney.toString(certificate1.getKeyID()));
+                            assertTrue(certificate.equals(certificate1));
                         }else{
-                            System.out.println("\tCT2 certificate not found in collection");
+                            System.out.println("\tCT2 certificate "+certificate.getShortDigest()+" not found in collection");
                         }
 
 

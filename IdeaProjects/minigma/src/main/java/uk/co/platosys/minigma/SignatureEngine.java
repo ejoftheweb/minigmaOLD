@@ -11,17 +11,7 @@
         import java.util.Date;
         import java.util.List;
         import org.bouncycastle.jce.provider.BouncyCastleProvider;
-        import org.bouncycastle.openpgp.PGPCompressedData;
-        import org.bouncycastle.openpgp.PGPObjectFactory;
-        import org.bouncycastle.openpgp.PGPPrivateKey;
-        import org.bouncycastle.openpgp.PGPPublicKey;
-        import org.bouncycastle.openpgp.PGPSecretKey;
-        import org.bouncycastle.openpgp.PGPSignature;
-        import org.bouncycastle.openpgp.PGPSignatureGenerator;
-        import org.bouncycastle.openpgp.PGPSignatureList;
-        import org.bouncycastle.openpgp.PGPSignatureSubpacketGenerator;
-        import org.bouncycastle.openpgp.PGPSignatureSubpacketVector;
-        import org.bouncycastle.openpgp.PGPUtil;
+        import org.bouncycastle.openpgp.*;
         import org.bouncycastle.openpgp.operator.KeyFingerPrintCalculator;
         import org.bouncycastle.openpgp.operator.PBESecretKeyDecryptor;
         import org.bouncycastle.openpgp.operator.PGPContentSignerBuilder;
@@ -48,11 +38,11 @@ public class SignatureEngine {
 
 
 
-    public static Signature sign(String string, Key key, char [] passphrase) throws MinigmaException{
+    protected static Signature sign(String string, Key key, char [] passphrase, LockStore lockStore) throws MinigmaException{
         byte[] bytes = MinigmaUtils.toByteArray(string);
-        return sign(bytes, key, passphrase);
+        return sign(bytes, key, passphrase, lockStore);
     }
-    static Signature sign(byte [] bytes, Key key, char[] passphrase) throws MinigmaException{
+    protected static Signature sign(byte [] bytes, Key key, char[] passphrase, LockStore lockStore) throws MinigmaException{
         try{
             if(Security.getProvider(BouncyCastleProvider.PROVIDER_NAME)==null){
                 Security.addProvider(new BouncyCastleProvider());
@@ -63,17 +53,16 @@ public class SignatureEngine {
             PGPContentSignerBuilder contentSignerBuilder = new JcaPGPContentSignerBuilder(key.getSigningKey().getPublicKey().getAlgorithm(), Minigma.HASH_ALGORITHM);
             PGPSignatureGenerator signatureGenerator = new PGPSignatureGenerator(contentSignerBuilder);
             signatureGenerator.init(PGPSignature.CANONICAL_TEXT_DOCUMENT, privateKey);
-            PGPSignature signature = signatureGenerator.generate();
-            signature.update(bytes, 0, 0);
-            String shortDigest=Digester.shortDigest(bytes);
-            return new Signature(signature, shortDigest);
+            PGPSignature pgpSignature = signatureGenerator.generate();
+            pgpSignature.update(bytes, 0, 0);
+            return new Signature(pgpSignature, lockStore.getUserID(key.getKeyID()) );
 
         }catch(Exception e){
              throw new MinigmaException("error making signature", e);
         }
     }
 
-    public static List<List<Long>> verify(String string, Signature signature, Lock lock){
+    protected static List<List<Long>> verify(String string, Signature signature, Lock lock){
         return verify(MinigmaUtils.toByteArray(string), signature, lock);
     }
     static List <List<Long>> verify(byte [] bytes, Signature signature, Lock lock){
@@ -117,8 +106,7 @@ public class SignatureEngine {
                 }
             }
         }catch(Exception x){
-            System.out.println(x.getMessage());
-            System.out.println(x.getCause().getMessage());
+           Exceptions.dump(x);
         }
         return results;
     }
@@ -126,6 +114,9 @@ public class SignatureEngine {
     public static PGPSignature getKeyCertification(Key key, char[] passphrase, PGPPublicKey keyToBeSigned){
 
         try{
+            if(Security.getProvider(BouncyCastleProvider.PROVIDER_NAME)==null){
+                Security.addProvider(new BouncyCastleProvider());
+            }
             PGPContentSignerBuilder contentSignerBuilder = new JcaPGPContentSignerBuilder(key.getSigningKey().getPublicKey().getAlgorithm(), Minigma.HASH_ALGORITHM);
             PGPSignatureGenerator signatureGenerator = new PGPSignatureGenerator(contentSignerBuilder);
             PGPSignatureSubpacketGenerator subPacketGenerator = new PGPSignatureSubpacketGenerator();
@@ -133,6 +124,9 @@ public class SignatureEngine {
             subPacketGenerator.setSignatureCreationTime(true, new Date());
             PGPSignatureSubpacketVector packetVector = subPacketGenerator.generate();
             signatureGenerator.setHashedSubpackets(packetVector);
+            JcePBESecretKeyDecryptorBuilder keyDecryptorBuilder = new JcePBESecretKeyDecryptorBuilder();
+            keyDecryptorBuilder.setProvider(BouncyCastleProvider.PROVIDER_NAME);
+            signatureGenerator.init(PGPSignature.POSITIVE_CERTIFICATION, key.getSigningKey().extractPrivateKey(keyDecryptorBuilder.build(passphrase)));
             PGPSignature signature = signatureGenerator.generateCertification(keyToBeSigned);
             return signature;
         }catch(Exception x){
@@ -144,6 +138,9 @@ public class SignatureEngine {
     static PGPSignature getKeyRevocation(Key key, char [] passphrase, PGPPublicKey keyToBeRevoked){
 
         try{
+            if(Security.getProvider(BouncyCastleProvider.PROVIDER_NAME)==null){
+                Security.addProvider(new BouncyCastleProvider());
+            }
             PGPSecretKey secretKey = key.getSigningKey();
             PBESecretKeyDecryptor keyDecryptor =  new JcePBESecretKeyDecryptorBuilder()
                     .setProvider(BouncyCastleProvider.PROVIDER_NAME).build(passphrase);
@@ -160,6 +157,7 @@ public class SignatureEngine {
             PGPSignature signature = signatureGenerator.generateCertification(keyToBeRevoked);
             return signature;
         }catch(Exception x){
+            Exceptions.dump(x);
             return null;
         }
     }

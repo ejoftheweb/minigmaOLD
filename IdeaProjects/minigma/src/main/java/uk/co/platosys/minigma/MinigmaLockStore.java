@@ -23,12 +23,14 @@
 
         import org.bouncycastle.bcpg.ArmoredInputStream;
         import org.bouncycastle.bcpg.ArmoredOutputStream;
+        import org.bouncycastle.openpgp.PGPException;
         import org.bouncycastle.openpgp.PGPPublicKey;
         import org.bouncycastle.openpgp.PGPPublicKeyRing;
         import org.bouncycastle.openpgp.PGPPublicKeyRingCollection;
         import org.bouncycastle.openpgp.operator.KeyFingerPrintCalculator;
         import org.bouncycastle.openpgp.operator.jcajce.JcaKeyFingerprintCalculator;
 
+        import uk.co.platosys.minigma.exceptions.Exceptions;
         import uk.co.platosys.minigma.exceptions.MinigmaException;
         import uk.co.platosys.minigma.utils.MinigmaOutputStream;
 
@@ -126,8 +128,11 @@ public class MinigmaLockStore implements LockStore {
             if (keyRings==null){
                 load();
             }
-            Iterator<PGPPublicKeyRing> it = lock.getKeys();
-
+            long lockID = lock.getLockID();
+            if (keyRings.contains(lockID)){
+                removeLock(lockID);
+            }
+            Iterator<PGPPublicKeyRing> it = lock.getPGPPublicKeyRingIterator();
             while (it.hasNext()){
                 PGPPublicKeyRing publicKey =  it.next();
                 keyRings = PGPPublicKeyRingCollection.addPublicKeyRing(keyRings, publicKey);
@@ -135,6 +140,24 @@ public class MinigmaLockStore implements LockStore {
             }
             return save();
         }catch(Exception e){
+            return false;
+        }
+    }
+
+    @Override
+    public boolean removeLock(long lockID) {
+        try{
+            if (keyRings.contains(lockID)){
+                Lock oldLock = getLock(lockID);
+                Iterator<PGPPublicKeyRing> pgpPublicKeyRingIterator = oldLock.getPGPPublicKeyRingIterator();
+                while(pgpPublicKeyRingIterator.hasNext()){
+                    PGPPublicKeyRing pgpPublicKeyRing = pgpPublicKeyRingIterator.next();
+                    keyRings=PGPPublicKeyRingCollection.removePublicKeyRing(keyRings, pgpPublicKeyRing);
+                }
+            }
+            return true;
+        }catch (PGPException pgpex){
+            Exceptions.dump(pgpex);
             return false;
         }
     }
@@ -185,7 +208,7 @@ public class MinigmaLockStore implements LockStore {
                     keyRingCollection=PGPPublicKeyRingCollection.addPublicKeyRing(keyRingCollection,publicKeyRing);
                 }
             }
-            System.out.println("getting lock for "+userID);
+           // System.out.println("getting lock for "+userID);
             return new Lock(keyRingCollection);
         }catch(Exception e){
             throw new MinigmaException("error getting lock for userID "+userID, e);
@@ -211,4 +234,8 @@ public class MinigmaLockStore implements LockStore {
         return count;
     }
 
+    @Override
+    public String getUserID(long keyID) {
+        return null;
+    }
 }

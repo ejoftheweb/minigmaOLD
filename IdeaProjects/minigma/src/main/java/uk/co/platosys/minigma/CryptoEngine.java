@@ -208,7 +208,7 @@ public  class CryptoEngine {
             JcePGPDataEncryptorBuilder pgpDataEncryptorBuilder = new JcePGPDataEncryptorBuilder(algorithm);
             pgpDataEncryptorBuilder.setProvider(BouncyCastleProvider.PROVIDER_NAME);
             encryptedDataGenerator = new PGPEncryptedDataGenerator(pgpDataEncryptorBuilder);
-            Iterator<PGPPublicKeyRing> it = lock.getKeys();
+            Iterator<PGPPublicKeyRing> it = lock.getPGPPublicKeyRingIterator();
             if (!it.hasNext()){
                 throw new MinigmaException("Empty Lock: "+lock.toString());
             }

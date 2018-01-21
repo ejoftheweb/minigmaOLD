@@ -22,6 +22,7 @@ public class LockSmithTest {
     LockStore lockStore;
     @Test
     public void createMultipleLockSetTest(){
+        System.out.println("Running CreateMultipleLockset Test (CMLT)");
         testRoot.mkdirs();
         keyDirectory.mkdirs();
         lockDirectory.mkdirs();
@@ -36,12 +37,12 @@ public class LockSmithTest {
                    long startTime=System.currentTimeMillis();
                    LockSmith.createLockset(keyDirectory, lockStore, testUsernames[i], testPassPhrases[i].toCharArray(), Algorithms.RSA);
                    long endTime=System.currentTimeMillis();
-                   long takenTime=startTime-endTime;
+                   long takenTime=endTime-startTime;
 
 
 
 
-                   System.out.println("created lockset for "+testUsernames[i] + "in "+takenTime+ "ms");
+                   System.out.println("CMLT created lockset for "+testUsernames[i] + "in "+takenTime+ "ms");
 
                }catch(DuplicateNameException dnx){
                    System.out.println(dnx.getMessage());
