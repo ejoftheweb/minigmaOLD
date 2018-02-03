@@ -62,13 +62,13 @@ public class SignatureEngine {
         }
     }
 
-    protected static List<List<Long>> verify(String string, Signature signature, Lock lock){
+    protected static List<List<Fingerprint>> verify(String string, Signature signature, Lock lock){
         return verify(MinigmaUtils.toByteArray(string), signature, lock);
     }
-    static List <List<Long>> verify(byte [] bytes, Signature signature, Lock lock){
-        List<Long> signors = new ArrayList<Long>();
-        List<Long> nonsignors=new ArrayList<Long>();
-        List<List<Long>> results = new ArrayList<List<Long>>();
+    static List <List<Fingerprint>> verify(byte [] bytes, Signature signature, Lock lock){
+        List<Fingerprint> signors = new ArrayList<Fingerprint>();
+        List<Fingerprint> nonsignors=new ArrayList<Fingerprint>();
+        List<List<Fingerprint>> results = new ArrayList<List<Fingerprint>>();
         results.add(signors);
         results.add(nonsignors);
         try{
@@ -87,22 +87,18 @@ public class SignatureEngine {
             }else{
                 signatureList = (PGPSignatureList)o;
             }
-            //Log.d(TAG,5, "signatureList has "+signatureList.size()+" signatures");
 
             for(int i=0; i<signatureList.size(); i++){
                 PGPSignature pgpSignature = signatureList.get(i);
-                long keyID = pgpSignature.getKeyID();
+                long  keyID = pgpSignature.getKeyID();
                 PGPPublicKey publicKey = lock.getPublicKey(keyID);
                 PGPContentVerifierBuilderProvider pgpContentVerifierBuilder = new JcaPGPContentVerifierBuilderProvider();//.get(keyAlgorithm, Minigma.HASH_ALGORITHM);
                 pgpSignature.init(pgpContentVerifierBuilder, publicKey);
                 pgpSignature.update(bytes, 0,0);
                 if(pgpSignature.verify()){
-                     //System.out.println("signature for keyID "+Kidney.toString(keyID)+" verified");
-                     signors.add(keyID);
+                   signors.add(new Fingerprint(publicKey.getFingerprint()));
                 }else{
-                    //System.out.println("signature for keyID "+Kidney.toString(keyID)+" not verified");
-
-                    nonsignors.add(keyID);
+                   nonsignors.add(new Fingerprint(publicKey.getFingerprint()));
                 }
             }
         }catch(Exception x){

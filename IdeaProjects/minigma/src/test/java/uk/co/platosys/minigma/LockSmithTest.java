@@ -42,7 +42,7 @@ public class LockSmithTest {
 
 
 
-                   System.out.println("CMLT created lockset for "+testUsernames[i] + "in "+takenTime+ "ms");
+                   System.out.println("CMLT created lockset for "+testUsernames[i] + " in "+takenTime+ "ms");
 
                }catch(DuplicateNameException dnx){
                    System.out.println(dnx.getMessage());

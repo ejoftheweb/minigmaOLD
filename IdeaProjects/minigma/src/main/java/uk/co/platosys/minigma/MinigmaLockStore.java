@@ -44,7 +44,7 @@
  */
 public class MinigmaLockStore implements LockStore {
     private static String TAG = "LockStore";
-    private PGPPublicKeyRingCollection keyRings;
+    private PGPPublicKeyRingCollection pgpPublicKeyRingCollection;
     private PGPPublicKeyRing pgpPublicKeyRing;
     private File file;
     private long storeId;
@@ -69,7 +69,7 @@ public class MinigmaLockStore implements LockStore {
             if(create){
                 Collection<PGPPublicKeyRing> ringCollection=new ArrayList<>();
                 try {
-                    this.keyRings = new PGPPublicKeyRingCollection(ringCollection);
+                    this.pgpPublicKeyRingCollection = new PGPPublicKeyRingCollection(ringCollection);
                     save();
                 }catch (Exception x){}
             }else{
@@ -82,9 +82,9 @@ public class MinigmaLockStore implements LockStore {
         try {
             InputStream keyIn = new ArmoredInputStream(new FileInputStream(file));
             KeyFingerPrintCalculator calculator = new JcaKeyFingerprintCalculator();
-            keyRings=new PGPPublicKeyRingCollection(keyIn, calculator);
+           pgpPublicKeyRingCollection=new PGPPublicKeyRingCollection(keyIn, calculator);
             PGPPublicKey publicKey = null;
-            Iterator<PGPPublicKeyRing> ringIterator = keyRings.getKeyRings();
+            Iterator<PGPPublicKeyRing> ringIterator = pgpPublicKeyRingCollection.getKeyRings();
             while (ringIterator.hasNext() ){
                 PGPPublicKeyRing thisKeyRing=ringIterator.next();
                 Iterator<PGPPublicKey> keyIterator = thisKeyRing.getPublicKeys();
@@ -109,7 +109,7 @@ public class MinigmaLockStore implements LockStore {
     private boolean save(){
         try {
             MinigmaOutputStream armoredOutputStream = new MinigmaOutputStream(new FileOutputStream(file));
-            keyRings.encode(armoredOutputStream);
+            pgpPublicKeyRingCollection.encode(armoredOutputStream);
             armoredOutputStream.close();
             return true;
         }catch(Exception e){
@@ -125,17 +125,17 @@ public class MinigmaLockStore implements LockStore {
     @Override
     public boolean addLock(Lock lock){
         try {
-            if (keyRings==null){
+            if (pgpPublicKeyRingCollection==null){
                 load();
             }
-            long lockID = lock.getLockID();
-            if (keyRings.contains(lockID)){
+            byte[] lockID = lock.getLockID();
+            if (pgpPublicKeyRingCollection.contains(lockID)){
                 removeLock(lockID);
             }
             Iterator<PGPPublicKeyRing> it = lock.getPGPPublicKeyRingIterator();
             while (it.hasNext()){
                 PGPPublicKeyRing publicKey =  it.next();
-                keyRings = PGPPublicKeyRingCollection.addPublicKeyRing(keyRings, publicKey);
+                pgpPublicKeyRingCollection = PGPPublicKeyRingCollection.addPublicKeyRing(pgpPublicKeyRingCollection, publicKey);
                 count++;
             }
             return save();
@@ -145,14 +145,14 @@ public class MinigmaLockStore implements LockStore {
     }
 
     @Override
-    public boolean removeLock(long lockID) {
+    public boolean removeLock(byte[] lockID) {
         try{
-            if (keyRings.contains(lockID)){
+            if (pgpPublicKeyRingCollection.contains(lockID)){
                 Lock oldLock = getLock(lockID);
                 Iterator<PGPPublicKeyRing> pgpPublicKeyRingIterator = oldLock.getPGPPublicKeyRingIterator();
                 while(pgpPublicKeyRingIterator.hasNext()){
                     PGPPublicKeyRing pgpPublicKeyRing = pgpPublicKeyRingIterator.next();
-                    keyRings=PGPPublicKeyRingCollection.removePublicKeyRing(keyRings, pgpPublicKeyRing);
+                    pgpPublicKeyRingCollection=PGPPublicKeyRingCollection.removePublicKeyRing(pgpPublicKeyRingCollection, pgpPublicKeyRing);
                 }
             }
             return true;
@@ -165,9 +165,9 @@ public class MinigmaLockStore implements LockStore {
     /** @param keyID
      * @return a lock with this keyID */
     @Override
-    public Lock getLock(long keyID){
+    public Lock getLock(byte[] keyID){
         try{
-            PGPPublicKeyRing keyRing = keyRings.getPublicKeyRing(keyID);
+            PGPPublicKeyRing keyRing = pgpPublicKeyRingCollection.getPublicKeyRing(keyID);
             Collection<PGPPublicKeyRing> collection = new ArrayList<>();
             collection.add(keyRing);
             PGPPublicKeyRingCollection keyRingCollection = new PGPPublicKeyRingCollection(collection);
@@ -180,7 +180,7 @@ public class MinigmaLockStore implements LockStore {
     public Iterator<Lock> iterator() throws MinigmaException{
         List<Lock> list = new ArrayList<>();
         try{
-            Iterator<PGPPublicKeyRing> kringit = keyRings.getKeyRings();
+            Iterator<PGPPublicKeyRing> kringit = pgpPublicKeyRingCollection.getKeyRings();
             while(kringit.hasNext()){
                 Collection<PGPPublicKeyRing> collection = new ArrayList<>();
                 collection.add(kringit.next());
@@ -197,7 +197,7 @@ public class MinigmaLockStore implements LockStore {
     public Lock getLock(String userID)throws MinigmaException{
         try{
             PGPPublicKeyRingCollection keyRingCollection=null;
-            Iterator<PGPPublicKeyRing> itr = keyRings.getKeyRings(userID, true);
+            Iterator<PGPPublicKeyRing> itr = pgpPublicKeyRingCollection.getKeyRings(userID, true);
             while(itr.hasNext() ){
                 PGPPublicKeyRing publicKeyRing=itr.next();
                 if (keyRingCollection==null){
@@ -224,7 +224,7 @@ public class MinigmaLockStore implements LockStore {
 
     public boolean contains(String userID){
         try {
-            Iterator<PGPPublicKeyRing> itr = keyRings.getKeyRings(userID);
+            Iterator<PGPPublicKeyRing> itr = pgpPublicKeyRingCollection.getKeyRings(userID);
             return itr.hasNext();
         }catch (Exception x){
             return false;
@@ -235,7 +235,27 @@ public class MinigmaLockStore implements LockStore {
     }
 
     @Override
+    public String getUserID(byte[] keyID) {
+        try {
+            PGPPublicKeyRing publicKeyRing = pgpPublicKeyRingCollection.getPublicKeyRing(keyID);
+            PGPPublicKey pgpPublicKey = publicKeyRing.getPublicKey(keyID);
+            Iterator<String> userids = pgpPublicKey.getUserIDs();
+            return userids.next();
+        }catch (PGPException pgpx){
+            Exceptions.dump(pgpx);
+            return null;
+        }
+    }
+    @Override
     public String getUserID(long keyID) {
-        return null;
+        try {
+            PGPPublicKeyRing publicKeyRing = pgpPublicKeyRingCollection.getPublicKeyRing(keyID);
+            PGPPublicKey pgpPublicKey = publicKeyRing.getPublicKey(keyID);
+            Iterator<String> userids = pgpPublicKey.getUserIDs();
+            return userids.next();
+        }catch (PGPException pgpx){
+            Exceptions.dump(pgpx);
+            return null;
+        }
     }
 }

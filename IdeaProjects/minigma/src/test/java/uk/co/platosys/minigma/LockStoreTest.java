@@ -25,8 +25,8 @@ public class LockStoreTest {
             Lock lock = new Lock(lockFile);
             lockStore.addLock(lock);
             //System.out.println("Added a lock so it now has "+lockStore.getCount()+" locks");
-            System.out.println(Kidney.toString(lock.getFingerprint()));
-            List<String> fingerprint = Kidney.getFingerprint(lock.getFingerprint());
+            System.out.println(Kidney.toString(lock.getLockID()));
+            List<String> fingerprint = lock.getFingerprint().getFingerprint();
             for(String word:fingerprint){
                 System.out.println(word);
             }

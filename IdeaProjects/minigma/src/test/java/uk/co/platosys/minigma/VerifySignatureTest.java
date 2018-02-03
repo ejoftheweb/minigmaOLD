@@ -27,7 +27,7 @@ public class VerifySignatureTest {
 
         try {
             key = new Key(new File(TestValues.keyDirectory, TestValues.testUsernames[0]));
-            Signature signature = key.sign(TestValues.testText, TestValues.testPassPhrases[0].toCharArray());
+            Signature signature = key.sign(TestValues.testText, TestValues.testPassPhrases[0].toCharArray(),lockStore);
             System.out.println(Kidney.toString(signature.getKeyID())+":"+signature.getShortDigest());
             signatureFile = new File(TestValues.signatureDirectory, signature.getShortDigest());
             if (signatureFile.exists()) {

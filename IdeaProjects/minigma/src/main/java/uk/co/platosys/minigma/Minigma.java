@@ -60,26 +60,9 @@ public class Minigma {
         ByteArrayInputStream bais = new ByteArrayInputStream(bytes);
         return new String(CryptoEngine.decrypt(bais, key, passphrase), "UTF-8");
     }
-    /**
-     * Returns a Base64-encoded String which is the signature of the passed-in String argument
-     * signed with the passed-in Key.
-     * @return
-     * @throws MinigmaException
-     */
-    public static Signature sign(String string, Key key, char[] passphrase ) throws MinigmaException{
-        return key.sign(string, passphrase);
-    }
 
-    public static long verify(String signedMaterial, Signature signature, LockStore lockStore)throws MinigmaException, UnsupportedAlgorithmException, SignatureException {
-        Iterator<Lock> lockit = lockStore.iterator();
-        while(lockit.hasNext()){
-            Lock lock = lockit.next();
-            if (lock.verify(signedMaterial, signature)){
-                return lock.getLockID();
-            }
-        }
-        return 0l;
-    }
+
+
 
 
 

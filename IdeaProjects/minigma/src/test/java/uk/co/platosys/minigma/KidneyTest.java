@@ -18,16 +18,13 @@ public class KidneyTest {
 
     @Test
     public void fingerprintTest(){
-        assertTrue(Kidney.EVEN_BIOMES.length==Kidney.ODD_BIOMES.length);
+        assertTrue(Fingerprint.EVEN_BIOMES.length==Fingerprint.ODD_BIOMES.length);
         try {
             MinigmaLockStore lockStore = new MinigmaLockStore(lockFile, false);
-            //System.out.println(lockStore.getCount());
             Lock lock = lockStore.getLock(testUsernames[4]);
 
-            byte[] fingerprint = lock.getFingerprint();
-            //System.out.println(Kidney.toString(fingerprint));
-            //System.out.println(fingerprint.length);
-            List<String> fingerprintWords = Kidney.getFingerprint(fingerprint);
+            Fingerprint fingerprint = lock.getFingerprint();
+            List<String> fingerprintWords = fingerprint.getFingerprint();
             System.out.println(fingerprintWords.size());
             for (String fingerprintWord : fingerprintWords) {
                 System.out.println(fingerprintWord);

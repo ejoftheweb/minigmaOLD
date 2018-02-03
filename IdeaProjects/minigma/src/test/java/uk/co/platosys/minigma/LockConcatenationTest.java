@@ -25,6 +25,9 @@ public class LockConcatenationTest {
             Lock lock = lockStore.getLock(TestValues.testUsernames[0]);
             for (int i = 1; i < TestValues.testUsernames.length; i++) {
                 Lock newLock = lockStore.getLock(TestValues.testUsernames[i]);
+                long newLockID = newLock.getPGPPublicKeyRingIterator().next().getPublicKey().getKeyID();
+                Fingerprint fingerprint = newLock.getFingerprint();
+                assertTrue(newLockID==fingerprint.getKeyID());
                 lock = lock.addLock(newLock, false);
             }
             byte[] clearbytes = MinigmaUtils.readFromBinaryFile(TestValues.clearFile);

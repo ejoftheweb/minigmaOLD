@@ -41,10 +41,17 @@ import uk.co.platosys.minigma.utils.MinigmaUtils;
 /**
  * In Minigma, a Key is the object used to unlock something that has been locked
  * with a corresponding Lock. Minigma Keys and Locks correspond to private keys and
- * public keys in other asymmetric crypto systems.
+ * public keys respectively in other asymmetric crypto systems.
  *
  * Minigma is a fairly lightweight wrapper to OpenPGP, so a Minigma Key can be instantiated
  * from OpenPGP private key material.
+ *
+ * HOWEVER: OpenPGP private key material does not include the UserID. The KeyID or fingerprint can be deduced from the
+ * key material, but not the relevant userID (which is, generally, an email address). Therefore, you need to look up the
+ * associated userID from a keyring, or in Minigma, a Lockstore, using lockstore.getUserId(long keyid) every time you use the
+ * key for signing.
+ * Minigma therefore provides a set of overloaded constructors which take a LockStore argument which should be used for creating
+ * signing keys.
  *
  * A Key always needs a passphrase.
  * @author edward
@@ -55,15 +62,17 @@ import uk.co.platosys.minigma.utils.MinigmaUtils;
 public class Key {
 
     private PGPSecretKey signingKey;
+    private PGPSecretKey masterKey;
     private PGPSecretKeyRingCollection secretKeyRingCollection;
-    private long keyID;
+    private byte[] keyID;
+    private String userID="";
 
 
     /** @param secretKeyRingCollection
      */
     protected Key(PGPSecretKeyRingCollection secretKeyRingCollection) throws Exception{
         this.secretKeyRingCollection=secretKeyRingCollection;
-        init();
+        init(null);
     }
 
 
@@ -77,7 +86,7 @@ public class Key {
             instream=PGPUtil.getDecoderStream(instream);
             KeyFingerPrintCalculator kfpc = new BcKeyFingerprintCalculator();
             this.secretKeyRingCollection = new PGPSecretKeyRingCollection(instream, kfpc);
-            init();
+            init(null);
             instream.close();
             fileStream.close();
         }catch(Exception x){
@@ -90,16 +99,47 @@ public class Key {
             instream=PGPUtil.getDecoderStream(instream);
             KeyFingerPrintCalculator kfpc = new BcKeyFingerprintCalculator();
             this.secretKeyRingCollection = new PGPSecretKeyRingCollection(instream, kfpc);
-            init();
+            init(null);
             instream.close();
             inputStream.close();
         }catch(Exception x){
            throw new MinigmaException("problem loading Key from input stream", x);
         }
     }
-    private void init() throws Exception{
+    /** @param keyFile  a java.io.File object pointing to  a text file of OpenPGP key material
+     */
+
+    public Key(File keyFile, LockStore lockStore)throws MinigmaException {
+        try{
+            FileInputStream fileStream=new FileInputStream(keyFile);
+            InputStream instream=new ArmoredInputStream(fileStream);
+            instream=PGPUtil.getDecoderStream(instream);
+            KeyFingerPrintCalculator kfpc = new BcKeyFingerprintCalculator();
+            this.secretKeyRingCollection = new PGPSecretKeyRingCollection(instream, kfpc);
+            init(lockStore);
+            instream.close();
+            fileStream.close();
+        }catch(Exception x){
+            throw new MinigmaException("problem loading Key from file", x);
+        }
+    }
+    public Key(InputStream inputStream, LockStore lockStore)throws MinigmaException {
+        try{
+            InputStream instream=new ArmoredInputStream(inputStream);
+            instream=PGPUtil.getDecoderStream(instream);
+            KeyFingerPrintCalculator kfpc = new BcKeyFingerprintCalculator();
+            this.secretKeyRingCollection = new PGPSecretKeyRingCollection(instream, kfpc);
+            init(lockStore);
+            instream.close();
+            inputStream.close();
+        }catch(Exception x){
+            throw new MinigmaException("problem loading Key from input stream", x);
+        }
+    }
+    private void init(LockStore lockStore) throws Exception{
         try{
             signingKey = null;
+            masterKey=null;
             //decryptionKey = null;
             Iterator<PGPSecretKeyRing> ringIterator = secretKeyRingCollection.getKeyRings();
             while ((signingKey == null) && ringIterator.hasNext()){
@@ -109,10 +149,13 @@ public class Key {
                     PGPSecretKey key = keyIterator.next();
                     if (key.isSigningKey()){
                         signingKey = key;
-                        keyID = signingKey.getKeyID();
-
-
-                    }
+                        keyID = signingKey.getPublicKey().getFingerprint();
+                        if(lockStore!=null){
+                            this.userID=lockStore.getUserID(keyID);
+                        }
+                    }else if (key.isMasterKey()){
+                        masterKey=key;
+                   }
                 }
             }
             if (signingKey == null) {
@@ -122,13 +165,16 @@ public class Key {
             throw e;
         }
     }
-    /**
-     *
-     * @return the keyID for this key;
-     */
-    public long getKeyID(){
-        return keyID;
+    /** @return the keyID for this key;*/
+    public byte[] getKeyID(){return keyID;}
+    public long getLongKeyID(){
+        Fingerprint fingerprint = new Fingerprint(keyID);
+        return fingerprint.getKeyID();
     }
+    /** @return the primary userID associated with this key;
+     * or the empty string*/
+    public String getUserID() {return userID;}
+
     /**
      *
      * @return
@@ -136,11 +182,11 @@ public class Key {
    protected PGPSecretKey getSigningKey(){
         return signingKey;
     }
+   protected PGPSecretKey getMasterKey(){return masterKey;}
 
     /**
      *Returns an BouncyCastle PGPSecretKey decryption key, to be used to
-     * decrypt/unlock something. The method is public but you should never need to call it.
-     *
+     * decrypt/unlock something.
      * @param keyID
      * @return
      */
@@ -164,9 +210,9 @@ public class Key {
      * @return a Base64-encoded signature String.
      * @throws MinigmaException
      */
-    public Signature sign(String toBeSigned, char[] passphrase) throws MinigmaException{
+    public Signature sign(String toBeSigned, char[] passphrase, LockStore lockStore) throws MinigmaException{
         String digest= Digester.digest(toBeSigned);
-        return SignatureEngine.sign(digest, this, passphrase);
+        return SignatureEngine.sign(digest, this, passphrase, lockStore);
     }
 
     /**
