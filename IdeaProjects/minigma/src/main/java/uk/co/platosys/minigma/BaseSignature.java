@@ -2,16 +2,16 @@ package uk.co.platosys.minigma;
 
 import org.bouncycastle.bcpg.ArmoredInputStream;
 import org.bouncycastle.bcpg.ArmoredOutputStream;
-import org.bouncycastle.openpgp.PGPCompressedData;
-import org.bouncycastle.openpgp.PGPSignature;
-import org.bouncycastle.openpgp.PGPSignatureList;
-import org.bouncycastle.openpgp.PGPUtil;
+import org.bouncycastle.bcpg.sig.NotationData;
+import org.bouncycastle.openpgp.*;
 import org.bouncycastle.openpgp.jcajce.JcaPGPObjectFactory;
 import uk.co.platosys.minigma.exceptions.MinigmaException;
 import uk.co.platosys.minigma.utils.MinigmaUtils;
 
 import java.io.*;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 public abstract class BaseSignature {
     protected PGPSignature pgpSignature;
@@ -138,5 +138,46 @@ public abstract class BaseSignature {
             return false;
         }
 
+    }
+
+    /**OpenPGP allows Signatures to carry NotationData, which is an extensible, user-defined
+     * vehicle for attaching additional information to a signature. Minigma specifically uses
+     * name-value pairs for this (the mechanism also allows for binary NotationData, which is
+     * not currently supported under Minigma). This method returns a List of the name part of the notations
+     * attached to this signature; you then call getNotationValue(String) to retrieve the corresponding value.
+     * Notations don't have to be human-readable - you can call getNotations(boolean human-readable) to return
+     * only the human-readable/machine-readable versions.
+     * returns a List of the
+     * @return
+     */
+    public List<String> getNotations(){
+        List<String> notations = new ArrayList<>();
+        PGPSignatureSubpacketVector notationVector = pgpSignature.getHashedSubPackets();
+        NotationData[] notationData = notationVector.getNotationDataOccurrences();
+        for(NotationData notation:notationData){
+            notations.add(notation.getNotationName());
+        }
+        return notations;
+    }
+    public List<String> getNotations(boolean humanreadable){
+        List<String> notations = new ArrayList<>();
+        PGPSignatureSubpacketVector notationVector = pgpSignature.getHashedSubPackets();
+        NotationData[] notationData = notationVector.getNotationDataOccurrences();
+        for(NotationData notation:notationData){
+            if (notation.isHumanReadable()==humanreadable) {
+                notations.add(notation.getNotationName());
+            }
+        }
+        return notations;
+    }
+    public String getNotationValue(String notationName){
+        PGPSignatureSubpacketVector notationVector = pgpSignature.getHashedSubPackets();
+        NotationData[] notationData = notationVector.getNotationDataOccurrences();
+        for(NotationData notation:notationData){
+            if (notation.getNotationName().equals(notationName)){
+                return notation.getNotationValue();
+            };
+        }
+        return null;
     }
 }

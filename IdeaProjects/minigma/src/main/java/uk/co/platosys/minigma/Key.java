@@ -25,6 +25,8 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStream;
 import java.util.Iterator;
+import java.util.List;
+
 import org.bouncycastle.bcpg.ArmoredInputStream;
 import org.bouncycastle.openpgp.PGPSecretKey;
 import org.bouncycastle.openpgp.PGPSecretKeyRing;
@@ -214,7 +216,16 @@ public class Key {
         String digest= Digester.digest(toBeSigned);
         return SignatureEngine.sign(digest, this, passphrase, lockStore);
     }
-
+    /**
+     * @param toBeSigned the String to be signed
+     * @param passphrase
+     * @return a Base64-encoded signature String.
+     * @throws MinigmaException
+     */
+    public Signature sign(String toBeSigned, List<Notation> notations, char[] passphrase, LockStore lockStore) throws MinigmaException{
+        String digest= Digester.digest(toBeSigned);
+        return SignatureEngine.sign(digest, this, notations, passphrase, lockStore);
+    }
     /**
      * This takes ciphertext and returns  the cleartext
      *

@@ -319,7 +319,7 @@ public Lock(File file) throws MinigmaException{
             Exceptions.dump(x);
             return null;
         }
-       
+
 
     }
 

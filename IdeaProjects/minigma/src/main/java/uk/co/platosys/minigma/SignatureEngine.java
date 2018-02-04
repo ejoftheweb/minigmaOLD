@@ -42,6 +42,10 @@ public class SignatureEngine {
         byte[] bytes = MinigmaUtils.toByteArray(string);
         return sign(bytes, key, passphrase, lockStore);
     }
+    protected static Signature sign(String string, Key key, List<Notation> notations,  char [] passphrase, LockStore lockStore) throws MinigmaException{
+        byte[] bytes = MinigmaUtils.toByteArray(string);
+        return sign(bytes, key, notations, passphrase, lockStore);
+    }
     protected static Signature sign(byte [] bytes, Key key, char[] passphrase, LockStore lockStore) throws MinigmaException{
         try{
             if(Security.getProvider(BouncyCastleProvider.PROVIDER_NAME)==null){
@@ -59,6 +63,31 @@ public class SignatureEngine {
 
         }catch(Exception e){
              throw new MinigmaException("error making signature", e);
+        }
+    }
+    protected static Signature sign(byte [] bytes, Key key, List<Notation> notations, char[] passphrase, LockStore lockStore) throws MinigmaException{
+        try{
+            if(Security.getProvider(BouncyCastleProvider.PROVIDER_NAME)==null){
+                Security.addProvider(new BouncyCastleProvider());
+            }
+            PBESecretKeyDecryptor keyDecryptor =  new JcePBESecretKeyDecryptorBuilder()
+                    .setProvider(BouncyCastleProvider.PROVIDER_NAME).build(passphrase);
+            PGPPrivateKey privateKey = key.getSigningKey().extractPrivateKey(keyDecryptor);
+            PGPContentSignerBuilder contentSignerBuilder = new JcaPGPContentSignerBuilder(key.getSigningKey().getPublicKey().getAlgorithm(), Minigma.HASH_ALGORITHM);
+            PGPSignatureGenerator signatureGenerator = new PGPSignatureGenerator(contentSignerBuilder);
+            signatureGenerator.init(PGPSignature.CANONICAL_TEXT_DOCUMENT, privateKey);
+            PGPSignatureSubpacketGenerator pgpSignatureSubpacketGenerator = new PGPSignatureSubpacketGenerator();
+            for (Notation notation:notations){
+                pgpSignatureSubpacketGenerator.setNotationData(notation.isCritical(), notation.isHumanReadable(), notation.getName(), notation.getValue());
+            }
+            PGPSignatureSubpacketVector pgpSignatureSubpacketVector = pgpSignatureSubpacketGenerator.generate();
+            signatureGenerator.setHashedSubpackets(pgpSignatureSubpacketVector);
+            PGPSignature pgpSignature = signatureGenerator.generate();
+            pgpSignature.update(bytes, 0, 0);
+            return new Signature(pgpSignature, lockStore.getUserID(key.getKeyID()) );
+
+        }catch(Exception e){
+            throw new MinigmaException("error making signature", e);
         }
     }
 
