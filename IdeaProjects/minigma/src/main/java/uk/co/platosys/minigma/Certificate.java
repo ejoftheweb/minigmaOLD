@@ -7,4 +7,7 @@ public final class Certificate extends BaseSignature {
         super (pgpSignature, signerUserID);
 
     }
+    public boolean isRevocation(){
+        return this.type==PGPSignature.KEY_REVOCATION;
+    }
 }

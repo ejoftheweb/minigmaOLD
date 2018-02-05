@@ -2,6 +2,7 @@ package uk.co.platosys.minigma;
 
 import org.bouncycastle.openpgp.PGPPublicKey;
 import org.bouncycastle.openpgp.PGPPublicKeyRing;
+import org.bouncycastle.openpgp.PGPSignature;
 import org.junit.Test;
 import uk.co.platosys.minigma.exceptions.Exceptions;
 import uk.co.platosys.minigma.utils.Kidney;
@@ -83,5 +84,28 @@ System.out.println("Running Certification Test");
         }catch(Exception x){
             Exceptions.dump(x);
         }
+    }
+    @Test
+    public void certificateRevocationTest(){
+        System.out.println("Running Certificate Revocation Test");
+        try {
+            LockStore lockstore = new MinigmaLockStore(TestValues.lockFile, false);
+            Lock lock = lockstore.getLock(TestValues.testUsernames[0]);
+            byte[] lockid = lock.getLockID();
+            Key key =  new Key(new File(TestValues.keyDirectory, TestValues.testUsernames[0]),lockstore);
+
+            lock.revokeLock(lockid, key, TestValues.testPassPhrases[0].toCharArray() );
+            List<Certificate> certificatesList = lock.getCertificates(lockstore);
+            for (Certificate certificate:certificatesList){
+                if (certificate.getType()== PGPSignature.KEY_REVOCATION) {
+                    System.out.println("Certificate is Revoked");
+                }
+
+            }
+
+        }catch(Exception e){
+            Exceptions.dump(e);
+        }
+
     }
 }

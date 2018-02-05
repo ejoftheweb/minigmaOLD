@@ -5,6 +5,7 @@ import org.bouncycastle.bcpg.ArmoredOutputStream;
 import org.bouncycastle.bcpg.sig.NotationData;
 import org.bouncycastle.openpgp.*;
 import org.bouncycastle.openpgp.jcajce.JcaPGPObjectFactory;
+import uk.co.platosys.minigma.exceptions.Exceptions;
 import uk.co.platosys.minigma.exceptions.MinigmaException;
 import uk.co.platosys.minigma.utils.MinigmaUtils;
 
@@ -17,6 +18,7 @@ public abstract class BaseSignature {
     protected PGPSignature pgpSignature;
     protected String shortDigest;
     protected String signerUserID;
+    protected int type;
 
     protected BaseSignature (PGPSignature pgpSignature, String signerUserID){
         this.pgpSignature=pgpSignature;
@@ -48,8 +50,56 @@ public abstract class BaseSignature {
             }
             this.pgpSignature=signatureList.get(0);
             this.shortDigest=Digester.shortDigest(pgpSignature);
-        }catch(Exception x){
+            switch (pgpSignature.getSignatureType()) {
+                case PGPSignature.CANONICAL_TEXT_DOCUMENT:
+                    this.type = PGPSignature.CANONICAL_TEXT_DOCUMENT;
+                    break;
+                case PGPSignature.DIRECT_KEY:
+                    this.type = PGPSignature.DIRECT_KEY;
+                    break;
+                case PGPSignature.POSITIVE_CERTIFICATION:
+                    this.type = PGPSignature.POSITIVE_CERTIFICATION;
+                    break;
+                case PGPSignature.BINARY_DOCUMENT:
+                    this.type = PGPSignature.BINARY_DOCUMENT;
+                    break;
+                case PGPSignature.CASUAL_CERTIFICATION:
+                    this.type = PGPSignature.CASUAL_CERTIFICATION;
+                    break;
+                case PGPSignature.CERTIFICATION_REVOCATION:
+                    this.type = PGPSignature.CERTIFICATION_REVOCATION;
+                    break;
+                case PGPSignature.DEFAULT_CERTIFICATION:
+                    this.type = PGPSignature.DEFAULT_CERTIFICATION;
+                    break;
+                case PGPSignature.KEY_REVOCATION:
+                    this.type = PGPSignature.KEY_REVOCATION;
+                    break;
+                case PGPSignature.NO_CERTIFICATION:
+                    this.type = PGPSignature.NO_CERTIFICATION;
+                    break;
+                case PGPSignature.PRIMARYKEY_BINDING:
+                    this.type = PGPSignature.PRIMARYKEY_BINDING;
+                    break;
+                case PGPSignature.STAND_ALONE:
+                    this.type = PGPSignature.STAND_ALONE;
+                    break;
+                case PGPSignature.SUBKEY_BINDING:
+                    this.type = PGPSignature.SUBKEY_BINDING;
+                    break;
+                case PGPSignature.SUBKEY_REVOCATION:
+                    this.type = PGPSignature.SUBKEY_REVOCATION;
+                    break;
+                case PGPSignature.TIMESTAMP:
+                    this.type = PGPSignature.TIMESTAMP;
+                    break;
+                default:
+                    this.type = pgpSignature.getSignatureType();
+            }
 
+
+        }catch(Exception x){
+            Exceptions.dump(x);
         }
     }
     /**
@@ -179,5 +229,8 @@ public abstract class BaseSignature {
             };
         }
         return null;
+    }
+    public int getType(){
+        return this.type;
     }
 }
