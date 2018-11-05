@@ -30,7 +30,7 @@ public class VerifySignatureTest {
 
         try {
             key = new Key(new File(TestValues.keyDirectory, TestValues.testUsernames[0]));
-            Signature signature = key.sign(TestValues.testText, TestValues.testPassPhrases[0].toCharArray(),lockStore);
+            Signature signature = key.sign(TestValues.testText, TestValues.testPassPhrases[0].toCharArray());
             System.out.println(Kidney.toString(signature.getKeyID())+":"+signature.getShortDigest());
             signatureFile = new File(TestValues.signatureDirectory, signature.getShortDigest());
             if (signatureFile.exists()) {
@@ -78,7 +78,7 @@ public class VerifySignatureTest {
                 Notation notation = new Notation(TestValues.testNotationNames[i], TestValues.testNotationValues[i]);
                 notationList.add(notation);
             }
-            Signature signature = key.sign(TestValues.testText, notationList, TestValues.testPassPhrases[0].toCharArray(),lockStore);
+            Signature signature = key.sign(TestValues.testText, notationList, TestValues.testPassPhrases[0].toCharArray());
             System.out.println(Kidney.toString(signature.getKeyID())+":"+signature.getShortDigest());
             signatureFile = new File(TestValues.signatureDirectory, signature.getShortDigest());
             if (signatureFile.exists()) {

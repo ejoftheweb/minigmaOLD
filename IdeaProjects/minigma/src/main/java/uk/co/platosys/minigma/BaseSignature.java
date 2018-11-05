@@ -14,16 +14,17 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+/**
+ * Base class on which other Signatures are built
+ */
 public abstract class BaseSignature {
     protected PGPSignature pgpSignature;
     protected String shortDigest;
-    protected String signerUserID;
     protected int type;
 
-    protected BaseSignature (PGPSignature pgpSignature, String signerUserID){
-        this.pgpSignature=pgpSignature;
-        this.shortDigest=Digester.shortDigest(pgpSignature);
-        this.signerUserID=signerUserID;
+    protected BaseSignature (PGPSignature pgpSignature) {
+        this.pgpSignature = pgpSignature;
+        this.shortDigest = Digester.shortDigest(pgpSignature);
     }
     protected BaseSignature (String string){
 
@@ -175,9 +176,7 @@ public abstract class BaseSignature {
         return pgpSignature.getKeyID();
     }
 
-    public String getSignerUserID() {
-        return signerUserID;
-    }
+
 
     @Override
     public boolean equals(Object object){
@@ -233,4 +232,5 @@ public abstract class BaseSignature {
     public int getType(){
         return this.type;
     }
+
 }

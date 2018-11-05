@@ -48,13 +48,7 @@ import uk.co.platosys.minigma.utils.MinigmaUtils;
  * Minigma is a fairly lightweight wrapper to OpenPGP, so a Minigma Key can be instantiated
  * from OpenPGP private key material.
  *
- * HOWEVER: OpenPGP private key material does not include the UserID. The KeyID or fingerprint can be deduced from the
- * key material, but not the relevant userID (which is, generally, an email address). Therefore, you need to look up the
- * associated userID from a keyring, or in Minigma, a Lockstore, using lockstore.getUserId(long keyid) every time you use the
- * key for signing.
- * Minigma therefore provides a set of overloaded constructors which take a LockStore argument which should be used for creating
- * signing keys.
- *
+*
  * A Key always needs a passphrase.
  * @author edward
  *
@@ -212,19 +206,21 @@ public class Key {
      * @return a Base64-encoded signature String.
      * @throws MinigmaException
      */
-    public Signature sign(String toBeSigned, char[] passphrase, LockStore lockStore) throws MinigmaException{
+    public Signature sign(String toBeSigned, char[] passphrase) throws MinigmaException{
         String digest= Digester.digest(toBeSigned);
-        return SignatureEngine.sign(digest, this, passphrase, lockStore);
+        return SignatureEngine.sign(digest, this, passphrase);
     }
+
     /**
      * @param toBeSigned the String to be signed
+     *                   @param notations a List of Notations which wrap NotationData to be signed
      * @param passphrase
      * @return a Base64-encoded signature String.
      * @throws MinigmaException
      */
-    public Signature sign(String toBeSigned, List<Notation> notations, char[] passphrase, LockStore lockStore) throws MinigmaException{
+    public Signature sign(String toBeSigned, List<Notation> notations, char[] passphrase) throws MinigmaException{
         String digest= Digester.digest(toBeSigned);
-        return SignatureEngine.sign(digest, this, notations, passphrase, lockStore);
+        return SignatureEngine.sign(digest, this, notations, passphrase);
     }
     /**
      * This takes ciphertext and returns  the cleartext

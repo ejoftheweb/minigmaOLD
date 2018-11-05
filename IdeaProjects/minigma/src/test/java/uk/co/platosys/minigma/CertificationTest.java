@@ -62,17 +62,15 @@ System.out.println("Running Certification Test");
                 List<Certificate> certificates = lock.getCertificates(lockstore);
                // System.out.println("CT2 lock "+Kidney.toString(lock.getLockID())+" has "+certificates.size()+" certificates");
                 for(Certificate certificate:certificates){
-                    System.out.println("\tCT2 attached certificate on lock "+certificate.getShortDigest()+" was signed by "+certificate.getSignerUserID());
+                    System.out.println("\tCT2 attached certificate on lock "+certificate.getShortDigest()+" was signed by "+lockstore.getUserID(certificate.getKeyID()));
                     try {
                         if(certificatesMap.containsKey(certificate.getShortDigest())) {
                             Certificate certificate1 = certificatesMap.get(certificate.getShortDigest());
-                            System.out.println("\t CT2 certificate in collection "+certificate1.getShortDigest()+" was signed by "+certificate1.getSignerUserID());
+                            System.out.println("\t CT2 certificate in collection "+certificate1.getShortDigest()+" was signed by "+lockstore.getUserID(certificate1.getKeyID()));
                             assertTrue(certificate.equals(certificate1));
                         }else{
                             System.out.println("\tCT2 certificate "+certificate.getShortDigest()+" not found in collection");
                         }
-
-
                     }catch(NullPointerException npe){
                         Exceptions.dump(npe);
                     }

@@ -36,26 +36,31 @@ import uk.co.platosys.minigma.utils.MinigmaUtils;
  */
 public class Digester {
     private static String TAG ="Digester";
+    public static byte[] bytesDigest (String string) throws MinigmaException{
+        return bytesDigest(string.getBytes(Charset.forName("UTF-8")));
+    }
 
     public static String digest (String string) throws MinigmaException{
-        return digest(string.getBytes(Charset.forName("UTF-8")));
+        return MinigmaUtils.encode(bytesDigest(string.getBytes(Charset.forName("UTF-8"))));
     }
     /**Takes a byte array and returns a string which is
      * the Base64 encoded version the digest.
      * This uses SHA3-512 as the digest algorithm.
      *
      * */
-    public static String digest (byte[] bytes) throws MinigmaException{
-        try{
+    public static byte[] bytesDigest (byte[] bytes) throws MinigmaException{
+        try {
             KeccakDigest digest = new SHA3Digest(512);
-            for(byte byt:bytes){
+            for (byte byt : bytes) {
                 digest.update(byt);
             }
             byte[] digested = new byte[digest.getDigestSize()];
             digest.doFinal(digested, 0);
-            return(MinigmaUtils.encode(digested));
+            return digested;
         }catch(Exception e){
             throw new MinigmaException("error making digest", e);
+            //return(MinigmaUtils.encode(digested));
+
         }
     }
 

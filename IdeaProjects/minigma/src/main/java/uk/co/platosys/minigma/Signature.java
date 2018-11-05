@@ -25,8 +25,8 @@ public  final class Signature extends BaseSignature {
 
     private long keyID;
 
-    protected Signature (PGPSignature pgpSignature, String signerUserID){
-        super(pgpSignature, signerUserID);
+    protected Signature (PGPSignature pgpSignature){
+        super(pgpSignature);
     }
     public Signature (String string){
         super(string);

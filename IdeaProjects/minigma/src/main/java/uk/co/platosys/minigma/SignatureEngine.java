@@ -38,15 +38,15 @@ public class SignatureEngine {
 
 
 
-    protected static Signature sign(String string, Key key, char [] passphrase, LockStore lockStore) throws MinigmaException{
+    protected static Signature sign(String string, Key key, char [] passphrase) throws MinigmaException{
         byte[] bytes = MinigmaUtils.toByteArray(string);
-        return sign(bytes, key, passphrase, lockStore);
+        return sign(bytes, key, passphrase);
     }
-    protected static Signature sign(String string, Key key, List<Notation> notations,  char [] passphrase, LockStore lockStore) throws MinigmaException{
+    protected static Signature sign(String string, Key key, List<Notation> notations,  char [] passphrase) throws MinigmaException{
         byte[] bytes = MinigmaUtils.toByteArray(string);
-        return sign(bytes, key, notations, passphrase, lockStore);
+        return sign(bytes, key, notations, passphrase);
     }
-    protected static Signature sign(byte [] bytes, Key key, char[] passphrase, LockStore lockStore) throws MinigmaException{
+    protected static Signature sign(byte [] bytes, Key key, char[] passphrase) throws MinigmaException{
         try{
             if(Security.getProvider(BouncyCastleProvider.PROVIDER_NAME)==null){
                 Security.addProvider(new BouncyCastleProvider());
@@ -59,13 +59,13 @@ public class SignatureEngine {
             signatureGenerator.init(PGPSignature.CANONICAL_TEXT_DOCUMENT, privateKey);
             PGPSignature pgpSignature = signatureGenerator.generate();
             pgpSignature.update(bytes, 0, 0);
-            return new Signature(pgpSignature, lockStore.getUserID(key.getKeyID()) );
+            return new Signature(pgpSignature);
 
         }catch(Exception e){
              throw new MinigmaException("error making signature", e);
         }
     }
-    protected static Signature sign(byte [] bytes, Key key, List<Notation> notations, char[] passphrase, LockStore lockStore) throws MinigmaException{
+    protected static Signature sign(byte [] bytes, Key key, List<Notation> notations, char[] passphrase) throws MinigmaException{
         try{
             if(Security.getProvider(BouncyCastleProvider.PROVIDER_NAME)==null){
                 Security.addProvider(new BouncyCastleProvider());
@@ -84,7 +84,7 @@ public class SignatureEngine {
             signatureGenerator.setHashedSubpackets(pgpSignatureSubpacketVector);
             PGPSignature pgpSignature = signatureGenerator.generate();
             pgpSignature.update(bytes, 0, 0);
-            return new Signature(pgpSignature, lockStore.getUserID(key.getKeyID()) );
+            return new Signature(pgpSignature );
 
         }catch(Exception e){
             throw new MinigmaException("error making signature", e);
